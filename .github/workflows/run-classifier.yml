@@ -1,0 +1,36 @@
+name: Classify PDF
+
+on:
+  workflow_dispatch:
+    inputs:
+      filename:
+        description: "PDF file name"
+        required: true
+      filecontent:
+        description: "PDF base64 content"
+        required: true
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set OpenAI API key
+        run: echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+
+      - name: Decode PDF file
+        run: |
+          echo "${{ github.event.inputs.filecontent }}" | base64 -d > invoice.pdf
+
+      - name: Run Python classifier
+        run: |
+          pip install openai pdfplumber PyPDF2
+          python classify_invoice.py invoice.pdf output_pdfs
+
+      - name: Upload results
+        uses: actions/upload-artifact@v3
+        with:
+          name: classified-pdfs
+          path: output_pdfs/*.pdf
