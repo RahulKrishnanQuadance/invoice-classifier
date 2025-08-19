@@ -6,37 +6,33 @@ on:
       filename:
         description: "PDF file name"
         required: true
-      filelink:
-        description: "SharePoint PDF file link"
+      filecontent:
+        description: "PDF base64 content"
         required: true
 
 jobs:
   classify:
     runs-on: ubuntu-latest
     steps:
-      # 1️⃣ Checkout the repo
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      # 1️⃣ Checkout repo
+      - uses: actions/checkout@v3
 
       # 2️⃣ Set OpenAI API key from GitHub secret
-      - name: Set OpenAI API key
-        run: echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+      - run: echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
 
-      # 3️⃣ Download PDF from SharePoint link
-      - name: Download PDF from SharePoint
-        run: |
-          curl -L -o invoice.pdf "${{ github.event.inputs.filelink }}" --header "Authorization: Bearer ${{ secrets.SHAREPOINT_PAT }}"
+      # 3️⃣ Decode PDF file from base64
+      - run: |
+          mkdir -p output_pdfs
+          echo "${{ github.event.inputs.filecontent }}" | base64 -d > invoice.pdf
 
       # 4️⃣ Install dependencies and run Python classifier
-      - name: Run Python classifier
-        run: |
+      - run: |
           pip install --upgrade pip
           pip install openai pdfplumber PyPDF2
           python classify_invoice.py invoice.pdf output_pdfs
 
       # 5️⃣ Upload classified PDFs as artifacts
-      - name: Upload results
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: classified-pdfs
           path: output_pdfs/*.pdf
